@@ -15,19 +15,19 @@ The following packages are required for the system to run:
 
 To download the code, use these commands:
 ```bash
-git clone https://github.com/kieran-smith77/Watchdog.git
-cd Watchdog
+git clone https://github.com/kieran-smith77/watchdog.git
+cd watchdog
 ```
 
 To  install the required packages, use these commands:
 ```bash
-pip3 install -r requirements.txt
+sudo pip3 install -r requirements.txt
 ```
 
-The next step is to configure the options by editing the config file. Copy the below code into a file called `config.yml` and edit the values as needed:
+The next step is to configure the options by editing the config file. Copy the below code into a file called `config.yml` and edit the values as needed (network details can be found by using the command `ip r` on a Linux system):
 ```yaml
 network:
-  interface: "ens0"
+  interface: "eth0"
   CIDR: "192.168.1.0/24"
 slack:
   token: "xoxb-111-222-xxxxx"
@@ -37,7 +37,7 @@ slack:
     footer: ""
 ```
 
-After installing requirements and configuring the config file, the program can be run by simply using the following commands:
+After installing requirements and configuring the `config.yml` file, the program can be run by simply using the following command:
 ```bash
 sudo python3 main.py
 ```
@@ -47,7 +47,9 @@ sudo python3 main.py
 The program is designed to be run by a CRON job for the root user on a regular period. The below code can be used to add the program to the root user's crontab:
 
 ```bash
-(crontab -l ; echo "00 09 * * 1-5 python3 main.py") | sudo crontab -
+cd ..
+mv watchdog /usr/local/sbin/
+(crontab -l ; echo "*/10 * * * * /usr/local/sbin/watchdog/main.py") | sudo crontab -
 ```
 
   
