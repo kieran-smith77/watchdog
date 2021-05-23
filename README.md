@@ -48,7 +48,7 @@ The program is designed to be run by a CRON job for the root user on a regular p
 
 ```bash
 cd ..
-mv watchdog /usr/local/sbin/
+sudo mv watchdog /usr/local/sbin/
 (crontab -l ; echo "*/10 * * * * /usr/local/sbin/watchdog/main.py") | sudo crontab -
 ```
 

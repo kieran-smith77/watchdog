@@ -1,54 +1,37 @@
 #! /usr/bin/env python3
 
 from __future__ import absolute_import, division, print_function
+
+import datetime
 import logging
+import os
+import pickle
+import socket
+import time
+
+import errno
+import scapy.all
 import scapy.config
 import scapy.layers.l2
-import scapy.all
-import socket
-import math
-import errno
-import getopt
-import time
-import datetime
-import pickle
-import slack
-import os
-import csv
+
 import config
+import slack
 
 logging.basicConfig(format='%(asctime)s %(levelname)-5s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-def long2net(arg):
-    if (arg <= 0 or arg >= 0xFFFFFFFF):
-        raise ValueError("illegal netmask value", hex(arg))
-    return 32 - int(round(math.log(0xFFFFFFFF - arg, 2)))
-
-
-def to_CIDR_notation(bytes_network, bytes_netmask):
-    network = scapy.utils.ltoa(bytes_network)
-    netmask = long2net(bytes_netmask)
-    net = "%s/%s" % (network, netmask)
-    if netmask < 16:
-        logger.warning("%s is too big. skipping" % net)
-        return None
-    print(net)
-    return net
-
-
-def scan_and_print_neighbors(net, interface, timeout=5):
+def scan_and_print_neighbors(net, intf, timeout=5):
     devices = {}
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     try:
-        ans, unans = scapy.layers.l2.arping(net, iface=interface, timeout=timeout, verbose=False)
+        ans, unans = scapy.layers.l2.arping(net, iface=intf, timeout=timeout, verbose=False)
         for s, r in ans.res:
             device = r.sprintf("%Ether.src%")
             addr = r.sprintf("%ARP.psrc%")
-            devices[device] = {'address': addr,'datetime': now}
+            devices[device] = {'address': addr, 'datetime': now}
     except socket.error as e:
-        if e.errno == errno.EPERM:     # Operation not permitted
+        if e.errno == errno.EPERM:  # Operation not permitted
             logger.error("%s. Did you run as root?", e.strerror)
         else:
             raise
@@ -56,10 +39,9 @@ def scan_and_print_neighbors(net, interface, timeout=5):
 
 
 def remove_old_data(devices):
-    'Filters out all devices older than 1 month'
-    max_age = datetime.datetime.today()
     for device in devices:
-        time_since_insertion = (datetime.datetime.now() - datetime.datetime.strptime(devices[device]['datetime'], '%Y-%m-%d %H:%M')).days
+        time_since_insertion = (datetime.datetime.now() - datetime.datetime.strptime(devices[device]['datetime'],
+                                                                                     '%Y-%m-%d %H:%M')).days
         if time_since_insertion > 30:
             del devices[device]
     return devices
@@ -87,12 +69,12 @@ def get_data():
 
 
 def store_data(records):
-    pickle.dump( records, open( "devices.p", "wb" ) )
+    pickle.dump(records, open("devices.p", "wb"))
 
 
 def check_controlled_device(device):
     try:
-        device=device.upper()
+        device = device.upper()
         with open('controlled_devices.csv') as f:
             csv_list = [[val.strip() for val in r.split(",")] for r in f.readlines()]
         (_, *header), *data = csv_list
@@ -103,17 +85,17 @@ def check_controlled_device(device):
         if device in devices:
             return devices[device]
     except FileNotFoundError:
-            pass
+        pass
     return None
 
 
 def nmap_pp(output, mac):
-    message = "NEW DEVICE DETECTED\nDevice IP: {}\nDevice MAC: {}\n".format(output['addresses']['ipv4'],mac)
+    message = "NEW DEVICE DETECTED\nDevice IP: {}\nDevice MAC: {}\n".format(output['addresses']['ipv4'], mac)
 
     if len(output['hostnames']) > 1:
         message += "Hostnames:\n"
         for hostname in output['hostnames']:
-            message += str("\t", hostname['name'],"\n")
+            message += "\t" + hostname['name'] + "\n"
     elif len(output['hostnames']) == 1:
         if output['hostnames'][0]['name']:
             message += "Hostname: {}\n".format(output['hostnames'][0]['name'])
@@ -133,8 +115,8 @@ def nmap_pp(output, mac):
         message += "OS: {}\n".format(output['osmatch'][0]['name'])
     elif len(output['osmatch']) > 1:
         message += "Possible OS's:\n"
-        for os in output['osmatch']:
-            message += "\t{} ({}%)\n".format(os['name'],os['accuracy'])
+        for host_os in output['osmatch']:
+            message += "\t{} ({}%)\n".format(host_os['name'], host_os['accuracy'])
     return message
 
 
@@ -142,16 +124,18 @@ def scan(address, mac):
     import nmap
     nm = nmap.PortScanner()
     output = nm.scan(address, arguments='-O')
-    if not address in output['scan']:
-            output['scan'] = {address: {'addresses': {'ipv4': address}, 'hostnames':[],'vendor':[], 'osmatch':[]}}
+    if address not in output['scan']:
+        output['scan'] = {address: {'addresses': {'ipv4': address}, 'hostnames': [], 'vendor': [], 'osmatch': []}}
     results = nmap_pp(output['scan'][address], mac)
     return results
 
 
 def process_results(devices):
     records = get_data()
-    if records: live = True
-    else: live = False
+    if records:
+        live = True
+    else:
+        live = False
     for device in devices:
         if device in records:
             if devices[device]['address'] == records[device]['address']:
@@ -166,8 +150,9 @@ def process_results(devices):
 The device {} has a changed IP.\n
 The new IP address is {}\n
 But it should be {}.\n
-The MAC address is {}'''.format(controlled_device['Name'], devices[device]['address'], controlled_device['Address'], device.upper())
-                        alert(msg = msg)
+The MAC address is {}'''.format(controlled_device['Name'], devices[device]['address'], controlled_device['Address'],
+                                device.upper())
+                        alert(msg=msg)
                 records[device]['address'] = devices[device]['address']
                 records[device]['datetime'] = devices[device]['datetime']
                 continue
@@ -176,25 +161,25 @@ The MAC address is {}'''.format(controlled_device['Name'], devices[device]['addr
             if live:
                 logger.info("New Device")
                 details = scan(devices[device]['address'], device)
-                alert(msg = details)
+                alert(msg=details)
             records[device] = devices[device]
             continue
     store_data(records)
 
 
-def main(net=None, interface=None):
+def main(net=None, intf=None):
     if os.geteuid() != 0:
         exit("You need to have root privileges to run this script.\nPlease try again, this time using 'sudo'.")
 
-    if net and interface:
+    if net and intf:
         devices = {}
-        for _ in range(1):
-            devices.update(scan_and_print_neighbors(net, interface))
+        for _ in range(5):
+            devices.update(scan_and_print_neighbors(net, intf))
             time.sleep(1)
-    process_results(devices)
+        process_results(devices)
 
 
 if __name__ == "__main__":
     interface = config.get('network.interface')
-    net = config.get('network.CIDR')
-    main(net,interface)
+    network = config.get('network.CIDR')
+    main(network, interface)

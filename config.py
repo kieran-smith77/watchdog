@@ -1,18 +1,22 @@
 def get(value, default=None):
     import yaml
-    with open("config.yml", 'r') as stream:
-        try:
-            result = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            return default
-    if value:
-        value = value.split('.')
-    for i in value:
-        try:
-            result = result[i]
-        except KeyError:
-            return default
-    return result
+    try:
+        with open("config.yml", 'r') as stream:
+            try:
+                result = yaml.safe_load(stream)
+            except yaml.YAMLError:
+                return default
+        if value:
+            value = value.split('.')
+        for i in value:
+            try:
+                result = result[i]
+            except KeyError:
+                return default
+        return result
+    except FileNotFoundError:
+        return default
 
-
-### Add support for unvalid values ###
+if __name__ == '__main__':
+    print(get('slack.channel', 'Err'))
+    print(get('slck.cannel', 'Err'))
