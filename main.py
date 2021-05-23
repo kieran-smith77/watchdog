@@ -8,6 +8,7 @@ import os
 import pickle
 import socket
 import time
+import traceback
 
 import errno
 import scapy.all
@@ -184,8 +185,15 @@ def main(net=None, intf=None):
 
 
 if __name__ == "__main__":
-    interface = config.get('network.interface')
-    network = config.get('network.CIDR')
-    main(network, interface)
-    with open ('watch.log', 'a') as f:
-        f.write("\nSuccessfuly run at {}".format(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))))
+    try:
+        interface = config.get('network.interface')
+        network = config.get('network.CIDR')
+        main(network, interface)
+        with open ('watch.log', 'a') as f_log:
+            f_log.write("\nSuccessfuly run at {}".format(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))))
+    except Exception:
+        with open ('watch.err', 'a') as f_err:
+            msg = "\nFailed to run at {}\nRaised error:\n{}".format(
+                str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
+                traceback.format_exc())
+            f_err.write(msg)
