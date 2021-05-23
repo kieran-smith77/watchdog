@@ -147,9 +147,9 @@ def process_results(devices):
                 if controlled_device:
                     if devices[device]['address'] != controlled_device['Address']:
                         msg = '''
-The device {} has a changed IP.\n
-The new IP address is {}\n
-But it should be {}.\n
+The device, {}, has changed IP
+The new IP address is {}
+But it should be {}
 The MAC address is {}'''.format(controlled_device['Name'], devices[device]['address'], controlled_device['Address'],
                                 device.upper())
                         alert(msg=msg)
