@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 from __future__ import absolute_import, division, print_function
 import logging
@@ -91,16 +91,19 @@ def store_data(records):
 
 
 def check_controlled_device(device):
-    device=device.upper()
-    with open('controlled_devices.csv') as f:
-        csv_list = [[val.strip() for val in r.split(",")] for r in f.readlines()]
-    (_, *header), *data = csv_list
-    devices = {}
-    for row in data:
-        key, *values = row
-        devices[key] = {key: value for key, value in zip(header, values)}
-    if device in devices:
-        return devices[device]
+    try:
+        device=device.upper()
+        with open('controlled_devices.csv') as f:
+            csv_list = [[val.strip() for val in r.split(",")] for r in f.readlines()]
+        (_, *header), *data = csv_list
+        devices = {}
+        for row in data:
+            key, *values = row
+            devices[key] = {key: value for key, value in zip(header, values)}
+        if device in devices:
+            return devices[device]
+    except FileNotFoundError:
+            pass
     return None
 
 

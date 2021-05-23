@@ -4,13 +4,14 @@ Watchdog is a network monitoring tool to raise alerts when new devices are detec
 It uses ARP to identify all devices on the network and records their current state. When a new device appears on the network, a slack message is sent to a predefined  
 
 
-# Global installation
+# Installation and Configuration
 
 The following packages are required for the system to run:
 
 * **scapy** (for the ARP scan)
 * **python-nmap** (for the OS detection and host scanning)
 * **slack-sdk** (for sending the slack messages)
+* **yaml** (for interpreting the config file)
 
 To download the code, use these commands:
 ```bash
@@ -18,27 +19,38 @@ git clone https://github.com/kieran-smith77/Watchdog.git
 cd Watchdog
 ```
 
-To configure a new environment and installed the required packages, use these commands:
+To  install the required packages, use these commands:
 ```bash
-python3 -m venv venv/
-source venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
+The next step is to configure the options by editing the config file. Copy the below code into a file called `config.yml` and edit the values as needed:
+```yaml
+network:
+  interface: "ens0"
+  CIDR: "192.168.1.0/24"
+slack:
+  token: "xoxb-111-222-xxxxx"
+  channel: "#general"
+  message:
+    header: ""
+    footer: ""
+```
 
-After installing requirements, the program can be run by simply using the following commands:
+After installing requirements and configuring the config file, the program can be run by simply using the following commands:
 ```bash
-SLACK_BOT_TOKEN='xoxb-...'
-python3 main.py -i [interface] -n [network-address]
+sudo python3 main.py
 ```
 
 # Usage
 
-At the moment, these options are implemented:
+The program is designed to be run by a CRON job for the root user on a regular period. The below code can be used to add the program to the root user's crontab:
 
-**-n network**: Specify the network CIDR address to be scanned.
+```bash
+(crontab -l ; echo "00 09 * * 1-5 python3 main.py") | sudo crontab -
+```
 
-**-i interface**: Specify the interface which should be used to scan the network.
+  
 
 
 # Disclaimer
@@ -47,4 +59,6 @@ To be honest, you probably shouldn't even consider deploying this in your networ
 
 # Todo
 
-* Email: setup alerts to be sent over email in addition to Slack
+* Tidy up: The current state of the code is poor. I need to spend some time tidying up and making it more easy to understand.
+* Email: In addition to slack notifactions, I want to add email alerts for users who dont have/want slack.
+* Slack response: As a second part to this, I want to add a response to the slack bot. This way, I can issue commands for the bot to take actions to protect the network from suspicious devices.
