@@ -17,6 +17,10 @@ import scapy.layers.l2
 import config
 import slack
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 logging.basicConfig(format='%(asctime)s %(levelname)-5s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -184,4 +188,4 @@ if __name__ == "__main__":
     network = config.get('network.CIDR')
     main(network, interface)
     with open ('watch.log', 'a') as f:
-        f.write("\nSuccessfuly run at {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")))
+        f.write("\nSuccessfuly run at {}".format(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))))
