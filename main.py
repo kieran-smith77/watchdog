@@ -9,15 +9,15 @@ import socket
 import math
 import errno
 import getopt
-import sys
 import time
 import datetime
 import pickle
 import slack
 import os
 import csv
+import config
 
-logging.basicConfig(format='%(asctime)s %(levelname)-5s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.CRITICAL)
+logging.basicConfig(format='%(asctime)s %(levelname)-5s %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -67,8 +67,11 @@ def remove_old_data(devices):
 
 def alert(msg):
     # Send Email
-    if os.environ["SLACK_BOT_TOKEN"]:
-        slack_message = """{}""".format(msg)
+    if config.get('slack.token') and config.get('slack.channel'):
+        slack_message = """{}\n{}\n{}""".format(
+            config.get('slack.message.header'),
+            msg,
+            config.get('slack.message.footer'))
         slack.send_alert(slack_message)
     else:
         logger.warning("No slack bot token. System is unable to send messages to slack")
@@ -157,10 +160,10 @@ def process_results(devices):
                 if controlled_device:
                     if devices[device]['address'] != controlled_device['Address']:
                         msg = '''
-    The device {} has a changed IP.\n
-    The new IP address is {}\n
-    But it should be {}.\n
-    The MAC address is {}'''.format(controlled_device['Name'], devices[device]['address'], controlled_device['Address'], device.upper())
+The device {} has a changed IP.\n
+The new IP address is {}\n
+But it should be {}.\n
+The MAC address is {}'''.format(controlled_device['Name'], devices[device]['address'], controlled_device['Address'], device.upper())
                         alert(msg = msg)
                 records[device]['address'] = devices[device]['address']
                 records[device]['datetime'] = devices[device]['datetime']
@@ -188,29 +191,7 @@ def main(net=None, interface=None):
     process_results(devices)
 
 
-def usage():
-    print("Usage: %s [-i <interface>]" % sys.argv[0])
-
-
 if __name__ == "__main__":
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hi:n:', ['help', 'interface=', 'network='])
-    except getopt.GetoptError as err:
-        print(str(err))
-        usage()
-        sys.exit(2)
-
-    interface = 'en0'
-    net = '192.168.1.0/24'
-    for o, a in opts:
-        if o in ('-h', '--help'):
-            usage()
-            sys.exit()
-        elif o in ('-i', '--interface'):
-            interface = a
-        elif o in ('-n', '--network'):
-            net = a
-        else:
-            assert False, 'unhandled option'
-
+    interface = config.get('network.interface')
+    net = config.get('network.CIDR')
     main(net,interface)
