@@ -183,5 +183,5 @@ if __name__ == "__main__":
     interface = config.get('network.interface')
     network = config.get('network.CIDR')
     main(network, interface)
-    with open ('watch.log') a f:
+    with open ('watch.log') as f:
         f.write("Successfuly run at {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")))
